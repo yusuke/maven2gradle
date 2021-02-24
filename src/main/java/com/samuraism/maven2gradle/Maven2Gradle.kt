@@ -1,27 +1,38 @@
 package com.samuraism.maven2gradle
 
 import org.jdom2.Element
+import org.jdom2.filter.ElementFilter
+import org.jdom2.input.DOMBuilder
 import org.xml.sax.InputSource
 import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
-import org.jdom2.filter.ElementFilter
-import org.jdom2.input.DOMBuilder
 
 class Maven2Gradle(val generateKts: Boolean = false) {
     fun maven2gradle(pom: String): String {
-        val factory = DocumentBuilderFactory.newInstance()
-        val documentBuilder = factory.newDocumentBuilder()
-        val w3cDocument = documentBuilder.parse(InputSource(StringReader("<root>$pom</root>")))
-        val document = DOMBuilder().build(w3cDocument)
+        val document = DOMBuilder().build(
+            DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                .parse(InputSource(StringReader("<root>$pom</root>")))
+        )
+
         val result = StringBuilder()
         val dependencies = document.getDescendants(ElementFilter("dependency"))
         for (dependency in dependencies) {
-            result.append(convertDependency(dependency))
+            result.append(convertDependenciesElementToGradle(dependency))
         }
-        return result.toString()
+
+        val dependenciesElementExists = document.getDescendants(ElementFilter("dependencies")).hasNext()
+        return if (dependenciesElementExists) {
+            val indentIncreased = result.replace(Regex("^"), "    ")
+            """
+                dependencies {
+                ${indentIncreased}
+                }""".trimIndent()
+        } else {
+            result.toString()
+        }
     }
 
-    private fun convertDependency(dependency: Element): String {
+    private fun convertDependenciesElementToGradle(dependency: Element): String {
         val groupId = findOrThrow(dependency, "groupId")
         val artifactId = findOrThrow(dependency, "artifactId")
         val version = findOrThrow(dependency, "version")
@@ -34,7 +45,7 @@ class Maven2Gradle(val generateKts: Boolean = false) {
 
         val exclusionsIterator = dependency.getDescendants(ElementFilter("exclusions"))
         return if (exclusionsIterator.hasNext()) {
-            val exclusion = excludesToString(exclusionsIterator.next())
+            val exclusion = convertExclusionsElementToGradle(exclusionsIterator.next())
             if(generateKts){
                 "$gradleScope(\"$groupId:$artifactId:$version\") $exclusion"
             }else {
@@ -50,12 +61,12 @@ class Maven2Gradle(val generateKts: Boolean = false) {
         }
     }
 
-    private fun excludesToString(excludesElement: Element): String {
+    private fun convertExclusionsElementToGradle(excludesElement: Element): String {
         val result = StringBuilder("{\n")
         var count = 0
         val excludes = excludesElement.getDescendants(ElementFilter("exclusion"))
         for (exclude in excludes) {
-            result.append(convertExclude(exclude as Element))
+            result.append(convertExclusionElementToGradle(exclude as Element))
             count++
         }
         result.append("}")
@@ -66,7 +77,7 @@ class Maven2Gradle(val generateKts: Boolean = false) {
         }
     }
 
-    private fun convertExclude(exclude: Element): String {
+    private fun convertExclusionElementToGradle(exclude: Element): String {
         val groupId = findOrThrow(exclude, "groupId")
         val artifactId = findOrThrow(exclude, "artifactId")
         return if(generateKts){

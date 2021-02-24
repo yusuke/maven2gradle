@@ -27,7 +27,9 @@ class Maven2GradleTest {
     @Test
     fun maven2gradleWithDependenciesElement() {
         assertEquals(
-            """implementation 'com.samuraism:webdriver-installer:1.4'""",
+            """dependencies {
+    implementation 'com.samuraism:webdriver-installer:1.4'
+}""",
             Maven2Gradle().maven2gradle(
                 """<dependencies>
                             <dependency>
@@ -44,7 +46,9 @@ class Maven2GradleTest {
     @Test
     fun maven2gradleWithProjectElement() {
         assertEquals(
-            """implementation 'com.samuraism:webdriver-installer:1.4'""",
+            """dependencies {
+    implementation 'com.samuraism:webdriver-installer:1.4'
+}""",
             Maven2Gradle().maven2gradle(
                 """<project>
                 <dependencies>
