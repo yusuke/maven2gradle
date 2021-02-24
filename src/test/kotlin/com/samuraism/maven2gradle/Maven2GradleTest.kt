@@ -141,7 +141,7 @@ class Maven2GradleTest {
     fun exclude() {
         assertEquals(
             """implementation('ch.qos.logback:logback-classic:1.2.3') {
-            |    exclude group: org.slf4j, module: "slf4j-api"
+            |    exclude group: 'org.slf4j', module: 'slf4j-api'
             |}""".trimMargin(),
             Maven2Gradle().maven2gradle(
                 """<dependency>
@@ -187,8 +187,8 @@ class Maven2GradleTest {
     fun multipleExclusion() {
         assertEquals(
             """implementation('org.seleniumhq.selenium:selenium-chrome-driver:1.2.3') {
-            |    exclude group: com.google.guava, module: "guava"
-            |    exclude group: com.squareup.okio, module: "okio"
+            |    exclude group: 'com.google.guava', module: 'guava'
+            |    exclude group: 'com.squareup.okio', module: 'okio'
             |}""".trimMargin(),
             Maven2Gradle().maven2gradle(
                 """        <dependency>

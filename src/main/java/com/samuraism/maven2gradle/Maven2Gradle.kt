@@ -97,7 +97,7 @@ ${indentIncreased}
 
         } else {
 
-            """    exclude group: $groupId, module: "$artifactId"
+            """    exclude group: '$groupId', module: '$artifactId'
         |""".trimMargin()
         }
     }
