@@ -25,10 +25,33 @@ class Maven2GradleTest {
     }
 
     @Test
+    fun maven2gradleMultiple() {
+        assertEquals(
+            """implementation 'com.samuraism:webdriver-installer:1.4'
+                |implementation 'org.twitter4j:twitter4j-core:2.4.0'
+            """.trimMargin(),
+            Maven2Gradle().maven2gradle(
+                """        <dependency>
+            <groupId>com.samuraism</groupId>
+            <artifactId>webdriver-installer</artifactId>
+            <version>1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.twitter4j</groupId>
+            <artifactId>twitter4j-core</artifactId>
+            <version>2.4.0</version>
+        </dependency>
+"""
+            )
+        )
+    }
+
+    @Test
     fun maven2gradleWithDependenciesElement() {
         assertEquals(
             """dependencies {
     implementation 'com.samuraism:webdriver-installer:1.4'
+    implementation 'org.twitter4j:twitter4j-core:2.4.0'
 }""",
             Maven2Gradle().maven2gradle(
                 """<dependencies>
@@ -36,6 +59,11 @@ class Maven2GradleTest {
             <groupId>com.samuraism</groupId>
             <artifactId>webdriver-installer</artifactId>
             <version>1.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.twitter4j</groupId>
+            <artifactId>twitter4j-core</artifactId>
+            <version>2.4.0</version>
         </dependency>
         </dependencies>
 """

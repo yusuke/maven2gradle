@@ -4,29 +4,40 @@ import org.jdom2.Element
 import org.jdom2.filter.ElementFilter
 import org.jdom2.input.DOMBuilder
 import org.xml.sax.InputSource
+import java.io.File
+import java.io.FileInputStream
 import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
 
 class Maven2Gradle(val generateKts: Boolean = false) {
+    fun maven2gradle(pom: File): String {
+        return maven2gradle(InputSource(FileInputStream(pom)))
+    }
+
     fun maven2gradle(pom: String): String {
-        val document = DOMBuilder().build(
-            DocumentBuilderFactory.newInstance().newDocumentBuilder()
-                .parse(InputSource(StringReader("<root>$pom</root>")))
-        )
+        return maven2gradle(InputSource(StringReader("<root>$pom</root>")))
+    }
+
+    fun maven2gradle(input: InputSource): String {
+        val document = DOMBuilder().build(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(input))
 
         val result = StringBuilder()
         val dependencies = document.getDescendants(ElementFilter("dependency"))
+        var first = true
         for (dependency in dependencies) {
+            if (!first) {
+                result.append('\n')
+            }
             result.append(convertDependenciesElementToGradle(dependency))
+            first = false
         }
 
         val dependenciesElementExists = document.getDescendants(ElementFilter("dependencies")).hasNext()
         return if (dependenciesElementExists) {
-            val indentIncreased = result.replace(Regex("^"), "    ")
-            """
-                dependencies {
-                ${indentIncreased}
-                }""".trimIndent()
+            val indentIncreased = result.replace(Regex("^",RegexOption.MULTILINE), "    ")
+            """dependencies {
+${indentIncreased}
+}"""
         } else {
             result.toString()
         }
@@ -46,16 +57,16 @@ class Maven2Gradle(val generateKts: Boolean = false) {
         val exclusionsIterator = dependency.getDescendants(ElementFilter("exclusions"))
         return if (exclusionsIterator.hasNext()) {
             val exclusion = convertExclusionsElementToGradle(exclusionsIterator.next())
-            if(generateKts){
+            if (generateKts) {
                 "$gradleScope(\"$groupId:$artifactId:$version\") $exclusion"
-            }else {
+            } else {
                 "$gradleScope('$groupId:$artifactId:$version') $exclusion"
             }
 
         } else {
-            if(generateKts){
+            if (generateKts) {
                 "$gradleScope(\"$groupId:$artifactId:$version\")"
-            }else{
+            } else {
                 "$gradleScope '$groupId:$artifactId:$version'"
             }
         }
@@ -80,11 +91,11 @@ class Maven2Gradle(val generateKts: Boolean = false) {
     private fun convertExclusionElementToGradle(exclude: Element): String {
         val groupId = findOrThrow(exclude, "groupId")
         val artifactId = findOrThrow(exclude, "artifactId")
-        return if(generateKts){
+        return if (generateKts) {
             """    exclude(group = "$groupId", module = "$artifactId")
         |""".trimMargin()
 
-        }else {
+        } else {
 
             """    exclude group: $groupId, module: "$artifactId"
         |""".trimMargin()
@@ -100,8 +111,10 @@ class Maven2Gradle(val generateKts: Boolean = false) {
         throw IllegalArgumentException("$tag not found")
     }
 
-    private fun find(content: Element, @Suppress("SameParameterValue") tag: String,
-                     @Suppress("SameParameterValue") fallback: String): String {
+    private fun find(
+        content: Element, @Suppress("SameParameterValue") tag: String,
+        @Suppress("SameParameterValue") fallback: String
+    ): String {
         val tagName = content.getDescendants(ElementFilter(tag))
         for (element in tagName) {
             return element.text.trim()
